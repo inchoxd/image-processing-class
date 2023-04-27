@@ -10,7 +10,7 @@ int main(int argc, char *argv[]) {
 
   cv::Mat image;
   image = cv::imread(f_path);
-  if (image.empty()) {
+  if(image.empty()) {
     printf("Image file is not found.\n");
     return EXIT_FAILURE;
   }
