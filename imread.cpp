@@ -3,7 +3,9 @@
 
 int main(int argc, char *argv[]) {
   const char *f_path = argv[1];
-  if(f_path == NULL)
+  char tmp[256];
+  getcwd(tmp, 256);
+  if(argc < 2 && f_path == NULL)
       f_path = "barbara.pgm";
 
   cv::Mat image;
