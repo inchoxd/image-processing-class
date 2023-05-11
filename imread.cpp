@@ -1,5 +1,6 @@
 #include <cstdio>
-#include <opencv2/opencv.hpp>
+#include <opencv2/highgui.hpp>
+#include <opencv2/imgcodecs.hpp>
 
 int main(int argc, char *argv[]) {
   const char *f_path = argv[1];
