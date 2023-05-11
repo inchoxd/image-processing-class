@@ -1,15 +1,21 @@
 #include <iostream>
+#include <cmath>
 
-class complex {     // ex. class for complex numbers
-    double real;    // real part
-    double imag;    // imaginary part
+class complex {         // ex. class for complex numbers
+    private:
+        double real;    // real part
+        double imag;    // imaginary part
+    public:
+        complex() : real(-1.0), imag(-1.0){}                        // Constructor
+        complex(double a, double b) : real(a), imag(b){}
+        double abs() { return sqrt(real * real + imag * imag); }
 };
 
 int main(int argc, char** argv) {
-    // c++クラスのインスタンス
+    // instance of c++ class
     complex a;
-    a.real = 1.5;
-    a.imag = -1.0;
+    complex b(5, 7);
+    std::cout << "absolute value = " << b.abs() << std::endl;
 
     return 0;
 }
