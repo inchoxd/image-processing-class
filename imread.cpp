@@ -20,7 +20,7 @@ int main(int argc, char *argv[]) {
       for(int x = 0; x < image.cols; ++x) {
           if(x < image.cols / 2 && y < image.rows / 2) {
               int val = image.data[y * image.cols + x];       // x, y座標を指定して画素を取得．ストライド．
-              val /= 2;
+              val = 0;
               image.data[y * image.cols + x] = val;
           }
       }
