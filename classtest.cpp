@@ -13,9 +13,10 @@ class complex {         // ex. class for complex numbers
 
 int main(int argc, char** argv) {
     // instance of c++ class
-    complex a;
+    complex *a;
     complex b(5, 7);
-    std::cout << "absolute value = " << b.abs() << std::endl;
+    a = &b;
+    std::cout << "absolute value = " << a->abs() << std::endl;
 
     return 0;
 }
