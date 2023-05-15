@@ -11,17 +11,17 @@ int euclidean_alg(int a, int b) {
     return b;
 }
 
-cv::Mat checkered_flag(cv::Mat input) {
+cv::Mat checkered_flag(cv::Mat data) {
     bool fill = true;
-    int x = input.cols, y = input.rows;
+    int x = data.cols, y = data.rows;
     int euc = euclidean_alg(x, y);
 
-    for(int y = 0; y < input.rows; ++y) {
-        for(int x = 0; x < input.cols; ++x) {
+    for(int y = 0; y < data.rows; ++y) {
+        for(int x = 0; x < data.cols; ++x) {
             if(fill == true) {
-                int val = input.data[y * input.cols + x];       // x, y座標を指定して画素を取得．ストライド．
+                int val = data.data[y * data.cols + x];       // x, y座標を指定して画素を取得．ストライド．
                 val = 0;
-                input.data[y * input.cols + x] = val;
+                data.data[y * data.cols + x] = val;
             }
             if(x % euc == 0) {
                 if(fill == true) {
@@ -40,13 +40,13 @@ cv::Mat checkered_flag(cv::Mat input) {
         }
     }
 
-    return input;
+    return data;
 }
 
-cv::Mat zebra(cv::Mat input) {
+cv::Mat zebra(cv::Mat data) {
     bool fill = true;
     int a = 0, b = 0, tmp = 0;
-    int x = input.cols, y = input.rows;
+    int x = data.cols, y = data.rows;
 
     a = x;
     b = y;
@@ -55,12 +55,12 @@ cv::Mat zebra(cv::Mat input) {
         b = tmp;
     }
 
-    for(int y = 0; y < input.rows; ++y) {
-        for(int x = 0; x < input.cols; ++x) {
+    for(int y = 0; y < data.rows; ++y) {
+        for(int x = 0; x < data.cols; ++x) {
             if(fill == true) {
-                int val = input.data[y * input.cols + x];       // x, y座標を指定して画素を取得．ストライド．
+                int val = data.data[y * data.cols + x];       // x, y座標を指定して画素を取得．ストライド．
                 val = 0;
-                input.data[y * input.cols + x] = val;
+                data.data[y * data.cols + x] = val;
             }
             if(x % b == 0) {
                 if(fill == true) {
@@ -72,41 +72,61 @@ cv::Mat zebra(cv::Mat input) {
         }
     }
 
-    return input;
+    return data;
 }
 
-cv::Mat blacken_upper_left_corner(cv::Mat input) {
-    for(int y = 0; y < input.rows; ++y) {
-        for(int x = 0; x < input.cols; ++x) {
-            if(x < input.cols / 2 && y < input.rows / 2) {
-                int val = input.data[y * input.cols + x];       // x, y座標を指定して画素を取得．ストライド．
+cv::Mat blacken_upper_left_corner(cv::Mat data) {
+    for(int y = 0; y < data.rows; ++y) {
+        for(int x = 0; x < data.cols; ++x) {
+            if(x < data.cols / 2 && y < data.rows / 2) {
+                int val = data.data[y * data.cols + x];       // x, y座標を指定して画素を取得．ストライド．
                 val = 0;
-                input.data[y * input.cols + x] = val;
+                data.data[y * data.cols + x] = val;
             }
         }
     }
 
-    return input;
+    return data;
 }
 
 int main(int argc, char *argv[]) {
+    int i = 0;
     const char *f_path = argv[1];
+
     if(argc < 2 && f_path == NULL) {
         printf("input file_path >>");
         scanf("%s", f_path);
     }
 
-    cv::Mat data, image;
-    data = cv::imread(f_path, cv::ImreadModes::IMREAD_GRAYSCALE);
-    if(data.empty()) {
+    cv::Mat input, data, image[3];
+        input = cv::imread(f_path, cv::ImreadModes::IMREAD_GRAYSCALE);
+    if(input.empty()) {
         printf("Image file is not found.\n");
         return EXIT_FAILURE;
     }
-    printf("width=%d, height=%d\n", data.cols, data.rows);
-    image = checkered_flag(data);
-    //image = zebra(data);
-    //image = blacken_upper_left_corner(data);
-    cv::imshow("image", image);
+    printf("width=%d, height=%d\n", input.cols, input.rows);
+    cv::imshow("input_data", input);
+
+    while(i < 3) {
+        data = cv::imread(f_path, cv::ImreadModes::IMREAD_GRAYSCALE);
+        switch(i) {
+            case 0:
+                image[0] = checkered_flag(data);
+                cv::imshow("checkered_flag", image[0]);
+                break;
+            case 1:
+                image[1] = zebra(data);
+                cv::imshow("zebra", image[1]);
+                break;
+            case 2:
+                image[2] = blacken_upper_left_corner(data);
+                cv::imshow("blacken_upper_left_corner", image[2]);
+               break; 
+        }
+        i++;
+    }
+    //image = zebra(input);
+    //image = blacken_upper_left_corner(input);
     cv::waitKey();
     cv::destroyAllWindows();
 
