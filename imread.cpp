@@ -45,8 +45,15 @@ cv::Mat checkered_flag(cv::Mat input) {
 
 cv::Mat zebra(cv::Mat input) {
     bool fill = true;
+    int a = 0, b = 0, tmp = 0;
     int x = input.cols, y = input.rows;
-    int euc = euclidean_alg(x, y);
+
+    a = x;
+    b = y;
+    while((tmp = a % b) != 0) {
+        a = b;
+        b = tmp;
+    }
 
     for(int y = 0; y < input.rows; ++y) {
         for(int x = 0; x < input.cols; ++x) {
@@ -55,7 +62,7 @@ cv::Mat zebra(cv::Mat input) {
                 val = 0;
                 input.data[y * input.cols + x] = val;
             }
-            if(x % euc == 0) {
+            if(x % b == 0) {
                 if(fill == true) {
                     fill = false;
                 } else {
@@ -99,7 +106,7 @@ int main(int argc, char *argv[]) {
     image = checkered_flag(data);
     //image = zebra(data);
     //image = blacken_upper_left_corner(data);
-    cv::imshow("image", data);
+    cv::imshow("image", image);
     cv::waitKey();
     cv::destroyAllWindows();
 
