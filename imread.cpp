@@ -2,17 +2,19 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgcodecs.hpp>
 
-cv::Mat zebra(cv::Mat input) {
-    bool fill = true;
-    int a = 0, b = 0, tmp = 0;
-    int x = input.cols, y = input.rows;
-
-    a = x;
-    b = y;
+int euclidean_alg(int a, int b) {
+    int tmp = 0;
     while((tmp = a % b) != 0) {
         a = b;
         b = tmp;
     }
+    return b;
+}
+
+cv::Mat checkered_flag(cv::Mat input) {
+    bool fill = true;
+    int x = input.cols, y = input.rows;
+    int euc = euclidean_alg(x, y);
 
     for(int y = 0; y < input.rows; ++y) {
         for(int x = 0; x < input.cols; ++x) {
@@ -21,7 +23,39 @@ cv::Mat zebra(cv::Mat input) {
                 val = 0;
                 input.data[y * input.cols + x] = val;
             }
-            if(x % b == 0) {
+            if(x % euc == 0) {
+                if(fill == true) {
+                    fill = false;
+                } else {
+                    fill = true;
+                }
+            }
+        }
+        if(y % euc >= 31) {
+            if(fill == true) {
+                fill = false;
+            } else {
+                fill = true;
+            }
+        }
+    }
+
+    return input;
+}
+
+cv::Mat zebra(cv::Mat input) {
+    bool fill = true;
+    int x = input.cols, y = input.rows;
+    int euc = euclidean_alg(x, y);
+
+    for(int y = 0; y < input.rows; ++y) {
+        for(int x = 0; x < input.cols; ++x) {
+            if(fill == true) {
+                int val = input.data[y * input.cols + x];       // x, y座標を指定して画素を取得．ストライド．
+                val = 0;
+                input.data[y * input.cols + x] = val;
+            }
+            if(x % euc == 0) {
                 if(fill == true) {
                     fill = false;
                 } else {
@@ -62,7 +96,8 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
     printf("width=%d, height=%d\n", data.cols, data.rows);
-    image = zebra(data);
+    image = checkered_flag(data);
+    //image = zebra(data);
     //image = blacken_upper_left_corner(data);
     cv::imshow("image", data);
     cv::waitKey();
