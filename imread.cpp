@@ -1,5 +1,4 @@
 #include <cstdio>
-#include <opencv2/opencv.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgcodecs.hpp>
@@ -113,7 +112,7 @@ int main(int argc, char *argv[]) {
     printf("width=%d, height=%d\n", width, height);
     input.copyTo(tiled(cv::Rect(0, 0, width, height)));
 
-    while(i < 3) {
+    for(; i < 3; i++) {
         data = cv::imread(f_path, cv::ImreadModes::IMREAD_GRAYSCALE);
         switch(i) {
             case 0:
@@ -129,7 +128,6 @@ int main(int argc, char *argv[]) {
                 image[2].copyTo(tiled(cv::Rect(width, height, width, height)));
                break; 
         }
-        i++;
     }
 
     cv::resize(tiled, tiled, cv::Size(), 0.65, 0.65);
