@@ -9,6 +9,7 @@ int euclidean_alg(int a, int b) {
         a = b;
         b = r;
     }
+
     return b;
 }
 
@@ -32,7 +33,7 @@ cv::Mat checkered_flag(cv::Mat data) {
                 }
             }
         }
-        if(y % euc >= 31) {
+        if(y % euc >= euc - 1) {
             if(fill == true) {
                 fill = false;
             } else {
