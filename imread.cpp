@@ -4,10 +4,10 @@
 #include <opencv2/imgcodecs.hpp>
 
 int euclidean_alg(int a, int b) {
-    int tmp = 0;
-    while((tmp = a % b) != 0) {
+    int r = 0;
+    while((r = a % b) != 0) {
         a = b;
-        b = tmp;
+        b = r;
     }
     return b;
 }
@@ -46,15 +46,8 @@ cv::Mat checkered_flag(cv::Mat data) {
 
 cv::Mat zebra(cv::Mat data) {
     bool fill = true;
-    int a = 0, b = 0, tmp = 0;
     int x = data.cols, y = data.rows;
-
-    a = x;
-    b = y;
-    while((tmp = a % b) != 0) {
-        a = b;
-        b = tmp;
-    }
+    int euc = euclidean_alg(x, y);
 
     for(int y = 0; y < data.rows; ++y) {
         for(int x = 0; x < data.cols; ++x) {
@@ -63,7 +56,7 @@ cv::Mat zebra(cv::Mat data) {
                 val = 0;
                 data.data[y * data.cols + x] = val;
             }
-            if(x % b == 0) {
+            if(x % euc == 0) {
                 if(fill == true) {
                     fill = false;
                 } else {
