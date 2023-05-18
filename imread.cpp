@@ -71,11 +71,15 @@ cv::Mat zebra(cv::Mat data) {
 }
 
 cv::Mat blacken_upper_left_corner(cv::Mat data) {
+    const int NC = data.channels();
     for(int y = 0; y < data.rows / 2; ++y) {
+        const int STRIDE = data.cols * NC;
         for(int x = 0; x < data.cols / 2; ++x) {
-            int val = data.data[y * data.cols + x];       // x, y座標を指定して画素を取得．ストライドアクセス．
-            val = 0;
-            data.data[y * data.cols + x] = val;
+            for(int c = 0; c < NC; c++) {
+                int val = data.data[y * STRIDE + x * NC + c];       // x, y座標を指定して画素を取得．ストライドアクセス．
+                val = (c != 0) ? 0 : val;
+                data.data[y * STRIDE + x * NC + c] = val;
+            }
         }
     }
 
@@ -92,7 +96,7 @@ int main(int argc, char *argv[]) {
     }
 
     cv::Mat input, data, image[3];
-    input = cv::imread(f_path, cv::ImreadModes::IMREAD_GRAYSCALE);
+    input = cv::imread(f_path, cv::ImreadModes::IMREAD_COLOR);
     cv::Mat tiled(input.rows * 2, input.cols * 2, input.type());
     if(input.empty()) {
         printf("Image file is not found.\n");
@@ -104,7 +108,7 @@ int main(int argc, char *argv[]) {
     input.copyTo(tiled(cv::Rect(0, 0, width, height)));
 
     for(; i < 3; i++) {
-        data = cv::imread(f_path, cv::ImreadModes::IMREAD_GRAYSCALE);
+        data = cv::imread(f_path, cv::ImreadModes::IMREAD_COLOR);
         switch(i) {
             case 0:
                 image[0] = blacken_upper_left_corner(data);
