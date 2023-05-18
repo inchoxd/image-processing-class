@@ -21,7 +21,7 @@ cv::Mat checkered_flag(cv::Mat data) {
     for(int y = 0; y < data.rows; ++y) {
         for(int x = 0; x < data.cols; ++x) {
             if(fill == true) {
-                int val = data.data[y * data.cols + x];       // x, y座標を指定して画素を取得．ストライド．
+                int val = data.data[y * data.cols + x];
                 val = 0;
                 data.data[y * data.cols + x] = val;
             }
@@ -53,7 +53,7 @@ cv::Mat zebra(cv::Mat data) {
     for(int y = 0; y < data.rows; ++y) {
         for(int x = 0; x < data.cols; ++x) {
             if(fill == true) {
-                int val = data.data[y * data.cols + x];       // x, y座標を指定して画素を取得．ストライド．
+                int val = data.data[y * data.cols + x];
                 val = 0;
                 data.data[y * data.cols + x] = val;
             }
@@ -74,7 +74,7 @@ cv::Mat blacken_upper_left_corner(cv::Mat data) {
     for(int y = 0; y < data.rows; ++y) {
         for(int x = 0; x < data.cols; ++x) {
             if(x < data.cols / 2 && y < data.rows / 2) {
-                int val = data.data[y * data.cols + x];       // x, y座標を指定して画素を取得．ストライド．
+                int val = data.data[y * data.cols + x];       // x, y座標を指定して画素を取得．ストライドアクセス．
                 val = 0;
                 data.data[y * data.cols + x] = val;
             }
