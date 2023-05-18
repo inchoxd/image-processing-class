@@ -71,13 +71,11 @@ cv::Mat zebra(cv::Mat data) {
 }
 
 cv::Mat blacken_upper_left_corner(cv::Mat data) {
-    for(int y = 0; y < data.rows; ++y) {
-        for(int x = 0; x < data.cols; ++x) {
-            if(x < data.cols / 2 && y < data.rows / 2) {
-                int val = data.data[y * data.cols + x];       // x, y座標を指定して画素を取得．ストライドアクセス．
-                val = 0;
-                data.data[y * data.cols + x] = val;
-            }
+    for(int y = 0; y < data.rows / 2; ++y) {
+        for(int x = 0; x < data.cols / 2; ++x) {
+            int val = data.data[y * data.cols + x];       // x, y座標を指定して画素を取得．ストライドアクセス．
+            val = 0;
+            data.data[y * data.cols + x] = val;
         }
     }
 
@@ -85,7 +83,7 @@ cv::Mat blacken_upper_left_corner(cv::Mat data) {
 }
 
 int main(int argc, char *argv[]) {
-    int i = 0, width = 0, height = 0;
+    int i = 0;
     const char *f_path = argv[1];
 
     if(argc < 2 && f_path == NULL) {
@@ -101,8 +99,7 @@ int main(int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
-    width = input.cols;
-    height = input.rows;
+    const int width = input.cols, height = input.rows;
     printf("width=%d, height=%d\n", width, height);
     input.copyTo(tiled(cv::Rect(0, 0, width, height)));
 
