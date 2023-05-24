@@ -4,6 +4,26 @@
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgcodecs.hpp>
 
+typedef struct {
+    int B;
+    int G;
+    int R;
+} BGR;
+
+typedef struct {
+    int Y;
+    int Cb;
+    int Cr;
+} YCbCr;
+
+int cvt_YCbCr(cv::Mat data) {
+    const int w = data.cols, h = data.rows, NC = data.channels();
+    if(NC < 3)
+        return 1;
+
+
+}
+
 int gcm(int a, int b) {
     /**
     * NOTE: MAXIMUM VAL IS 128!!!
@@ -105,13 +125,13 @@ int main(int argc, char *argv[]) {
     const char *f_path = argv[1];
     const char *arg_mode = argv[2];
 
-    if(argc < 2 && f_path == NULL) {
+    if(f_path == NULL) {
         printf("input file_path >>");
         scanf("%s", f_path);
     }
 
     cv::Mat input, data, rst, image[3];
-    if(arg_mode != NULL && strcmp(arg_mode, "color") == 0 && argc > 2) {
+    if(arg_mode != NULL && strcmp(arg_mode, "color") == 0) {
         input = cv::imread(f_path, cv::ImreadModes::IMREAD_COLOR);
     } else {
         input = cv::imread(f_path, cv::ImreadModes::IMREAD_GRAYSCALE);
