@@ -16,12 +16,31 @@ typedef struct {
     int Cr;
 } YCbCr;
 
-int cvt_YCbCr(cv::Mat data) {
+int cvtYCbCr(cv::Mat data) {
     const int w = data.cols, h = data.rows, NC = data.channels();
     if(NC < 3)
         return 1;
 
+    for (int y = 0; y < h; ++y) {
+        const int STRIDE = w * NC;
+        for (int x = 0; x < w; ++x) {
+            double out[3] = {0.0, 0.0, 0.0};
+            double wY[3] = {0.114, 0.587, 0.299};
+            double wCb[3] = {0.5, -.3313, -.1687};
+            double wCr[3] = {-.0813, -.4187, 0.5};
+            for (int c = 0; c < NC; ++c) {
+                out[0] += data.data[y * STRIDE + x * NC + c] * wY[c];
+                out[1] += data.data[y * STRIDE + x * NC + c] * wCb[c];
+                out[2] += data.data[y * STRIDE + x * NC + c] * wCr[c];
+            }
+            for (int c = 0; c < NC; ++c) {
+                int val = (c != 0) ? 128 : 0;
+                data.data[y * STRIDE + x * NC + c] = out[c] + val;
+            }
+        }
+    }
 
+    return 0;
 }
 
 int gcm(int a, int b) {
@@ -51,7 +70,7 @@ void checkered_flag(cv::Mat data) {
     bool fill = true;
     int gcm_val = gcm(w, h);
 
-    for(int y = 0; y < data.rows; ++y) {
+    for(int y = 0; y < h; ++y) {
         const int STRIDE = w * NC;
         for(int x = 0; x < w; ++x) {
             if(fill == true) {
@@ -84,7 +103,7 @@ void zebra(cv::Mat data) {
     bool fill = true;
     int gcm_val = gcm(w, h);
 
-    for(int y = 0; y < w; ++y) {
+    for(int y = 0; y < h; ++y) {
         const int STRIDE = w * NC;
         for(int x = 0; x < w; ++x) {
             if(fill == true) {
@@ -106,9 +125,9 @@ void zebra(cv::Mat data) {
 }
 
 void blacken_upper_left_corner(cv::Mat data) {
-    const int w = data.cols, NC = data.channels();
+    const int w = data.cols, h = data.rows, NC = data.channels();
 
-    for(int y = 0; y < data.rows / 2; ++y) {
+    for(int y = 0; y < h / 2; ++y) {
         const int STRIDE = w * NC;
         for(int x = 0; x < w / 2; ++x) {
             for(int c = 0; c < NC; c++) {
@@ -124,6 +143,7 @@ int main(int argc, char *argv[]) {
     int i = 0;
     const char *f_path = argv[1];
     const char *arg_mode = argv[2];
+    const char *ycbcr = argv[3];
 
     if(f_path == NULL) {
         printf("input file_path >>");
@@ -133,6 +153,9 @@ int main(int argc, char *argv[]) {
     cv::Mat input, data, rst, image[3];
     if(arg_mode != NULL && strcmp(arg_mode, "color") == 0) {
         input = cv::imread(f_path, cv::ImreadModes::IMREAD_COLOR);
+        if(ycbcr != NULL && strcmp(ycbcr, "ycbcr") == 0) {
+            cvtYCbCr(input);
+        }
     } else {
         input = cv::imread(f_path, cv::ImreadModes::IMREAD_GRAYSCALE);
     }
