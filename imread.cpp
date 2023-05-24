@@ -1,31 +1,47 @@
 #include <cstdio>
+#include <string.h>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
 #include <opencv2/imgcodecs.hpp>
 
-int euclidean_alg(int a, int b) {
-    int r = 0;
-    while((r = a % b) != 0) {
-        a = b;
-        b = r;
+int gcm(int a, int b) {
+    /**
+    * NOTE: MAXIMUM VAL IS 128!!!
+    *       MINIMUM VAL IS 2!!!
+    **/
+    int tmp, r = 0;
+    tmp = a;
+    if(a > b) {
+        tmp = b;
     }
 
-    return b;
+    for(int i = 2; i <= tmp; i++) {
+        if(a % i == 0 && b % i == 0) {
+            if(r < 128) {
+                r = i;
+            }
+        }
+    }
+
+    return r;
 }
 
-cv::Mat checkered_flag(cv::Mat data) {
+void checkered_flag(cv::Mat data) {
+    const int w = data.cols, h = data.rows, NC = data.channels();
     bool fill = true;
-    int x = data.cols, y = data.rows;
-    int euc = euclidean_alg(x, y);
+    int gcm_val = gcm(w, h);
 
     for(int y = 0; y < data.rows; ++y) {
-        for(int x = 0; x < data.cols; ++x) {
+        const int STRIDE = w * NC;
+        for(int x = 0; x < w; ++x) {
             if(fill == true) {
-                int val = data.data[y * data.cols + x];
-                val = 0;
-                data.data[y * data.cols + x] = val;
+                for(int c = 0; c < NC; c++) {
+                    int val = data.data[y * STRIDE + x * NC + c];       // x, y座標を指定して画素を取得．ストライドアクセス．
+                    val = 0;
+                    data.data[y * STRIDE + x * NC + c] = val;
+                }
             }
-            if(x % euc == 0) {
+            if(x % gcm_val == 0) {
                 if(fill == true) {
                     fill = false;
                 } else {
@@ -33,7 +49,7 @@ cv::Mat checkered_flag(cv::Mat data) {
                 }
             }
         }
-        if(y % euc >= euc - 1) {
+        if(y % gcm_val >= gcm_val - 1) {
             if(fill == true) {
                 fill = false;
             } else {
@@ -41,23 +57,24 @@ cv::Mat checkered_flag(cv::Mat data) {
             }
         }
     }
-
-    return data;
 }
 
-cv::Mat zebra(cv::Mat data) {
+void zebra(cv::Mat data) {
+    const int w = data.cols, h = data.rows, NC = data.channels();
     bool fill = true;
-    int x = data.cols, y = data.rows;
-    int euc = euclidean_alg(x, y);
+    int gcm_val = gcm(w, h);
 
-    for(int y = 0; y < data.rows; ++y) {
-        for(int x = 0; x < data.cols; ++x) {
+    for(int y = 0; y < w; ++y) {
+        const int STRIDE = w * NC;
+        for(int x = 0; x < w; ++x) {
             if(fill == true) {
-                int val = data.data[y * data.cols + x];
-                val = 0;
-                data.data[y * data.cols + x] = val;
+                for(int c = 0; c < NC; c++) {
+                    int val = data.data[y * STRIDE + x * NC + c];       // x, y座標を指定して画素を取得．ストライドアクセス．
+                    val = 0;
+                    data.data[y * STRIDE + x * NC + c] = val;
+                }
             }
-            if(x % euc == 0) {
+            if(x % gcm_val == 0) {
                 if(fill == true) {
                     fill = false;
                 } else {
@@ -66,15 +83,14 @@ cv::Mat zebra(cv::Mat data) {
             }
         }
     }
-
-    return data;
 }
 
-cv::Mat blacken_upper_left_corner(cv::Mat data) {
-    const int NC = data.channels();
+void blacken_upper_left_corner(cv::Mat data) {
+    const int w = data.cols, NC = data.channels();
+
     for(int y = 0; y < data.rows / 2; ++y) {
-        const int STRIDE = data.cols * NC;
-        for(int x = 0; x < data.cols / 2; ++x) {
+        const int STRIDE = w * NC;
+        for(int x = 0; x < w / 2; ++x) {
             for(int c = 0; c < NC; c++) {
                 int val = data.data[y * STRIDE + x * NC + c];       // x, y座標を指定して画素を取得．ストライドアクセス．
                 val = (c != 0) ? 0 : val;
@@ -82,46 +98,53 @@ cv::Mat blacken_upper_left_corner(cv::Mat data) {
             }
         }
     }
-
-    return data;
 }
 
 int main(int argc, char *argv[]) {
     int i = 0;
     const char *f_path = argv[1];
+    const char *arg_mode = argv[2];
 
     if(argc < 2 && f_path == NULL) {
         printf("input file_path >>");
         scanf("%s", f_path);
     }
 
-    cv::Mat input, data, image[3];
-    input = cv::imread(f_path, cv::ImreadModes::IMREAD_COLOR);
-    cv::Mat tiled(input.rows * 2, input.cols * 2, input.type());
+    cv::Mat input, data, rst, image[3];
+    if(arg_mode != NULL && strcmp(arg_mode, "color") == 0 && argc > 2) {
+        input = cv::imread(f_path, cv::ImreadModes::IMREAD_COLOR);
+    } else {
+        input = cv::imread(f_path, cv::ImreadModes::IMREAD_GRAYSCALE);
+    }
+
+    for(i = 0; i < 3; i++) {
+        input.copyTo(image[i]);
+    }
+
     if(input.empty()) {
         printf("Image file is not found.\n");
         return EXIT_FAILURE;
     }
 
+    cv::Mat tiled(input.rows * 2, input.cols * 2, input.type());
     const int width = input.cols, height = input.rows;
     printf("width=%d, height=%d\n", width, height);
     input.copyTo(tiled(cv::Rect(0, 0, width, height)));
 
-    for(; i < 3; i++) {
-        data = cv::imread(f_path, cv::ImreadModes::IMREAD_COLOR);
+    for(i = 0; i < 3; i++) {
         switch(i) {
             case 0:
-                image[0] = blacken_upper_left_corner(data);
+                blacken_upper_left_corner(image[0]);
                 image[0].copyTo(tiled(cv::Rect(width, 0, width, height)));
                 break;
             case 1:
-                image[1] = zebra(data);
+                zebra(image[1]);
                 image[1].copyTo(tiled(cv::Rect(0, height, width, height)));
                 break;
             case 2:
-                image[2] = checkered_flag(data);
+                checkered_flag(image[2]);
                 image[2].copyTo(tiled(cv::Rect(width, height, width, height)));
-               break; 
+                break; 
         }
     }
 
