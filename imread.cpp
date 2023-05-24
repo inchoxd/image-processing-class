@@ -1,4 +1,5 @@
 #include <cstdio>
+#include <getopt.h>
 #include <string.h>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
@@ -139,42 +140,17 @@ void blacken_upper_left_corner(cv::Mat data) {
     }
 }
 
-int main(int argc, char *argv[]) {
-    int i = 0;
-    const char *f_path = argv[1];
-    const char *arg_mode = argv[2];
-    const char *ycbcr = argv[3];
+void imgTiled(cv::Mat data) {
+    const int width = data.cols, height = data.rows;
+    cv::Mat image[3];
+    cv::Mat tiled(height * 2, width * 2, data.type());
+    data.copyTo(tiled(cv::Rect(0, 0, width, height)));
 
-    if(f_path == NULL) {
-        printf("input file_path >>");
-        scanf("%s", f_path);
+    for(int i = 0; i < 3; i++) {
+        data.copyTo(image[i]);
     }
 
-    cv::Mat input, data, rst, image[3];
-    if(arg_mode != NULL && strcmp(arg_mode, "color") == 0) {
-        input = cv::imread(f_path, cv::ImreadModes::IMREAD_COLOR);
-        if(ycbcr != NULL && strcmp(ycbcr, "ycbcr") == 0) {
-            cvtYCbCr(input);
-        }
-    } else {
-        input = cv::imread(f_path, cv::ImreadModes::IMREAD_GRAYSCALE);
-    }
-
-    for(i = 0; i < 3; i++) {
-        input.copyTo(image[i]);
-    }
-
-    if(input.empty()) {
-        printf("Image file is not found.\n");
-        return EXIT_FAILURE;
-    }
-
-    cv::Mat tiled(input.rows * 2, input.cols * 2, input.type());
-    const int width = input.cols, height = input.rows;
-    printf("width=%d, height=%d\n", width, height);
-    input.copyTo(tiled(cv::Rect(0, 0, width, height)));
-
-    for(i = 0; i < 3; i++) {
+    for(int i = 0; i < 3; i++) {
         switch(i) {
             case 0:
                 blacken_upper_left_corner(image[0]);
@@ -195,6 +171,111 @@ int main(int argc, char *argv[]) {
     cv::imshow("results", tiled);
     cv::waitKey();
     cv::destroyAllWindows();
+}
 
+void errorExt(char *arg) {
+    printf("%s is an option that does not exist.\n", arg);
+    exit(1);
+}
+
+void imgSimple(cv::Mat data) {
+    cv::imshow("results", data);
+    cv::waitKey();
+    cv::destroyAllWindows();
+}
+
+void checkDisplayType(char *display, cv::Mat input) {
+    if(strcmp("tiled", display) == 0) {
+        imgTiled(input);
+    } else if(strcmp("single", display) == 0) {
+        imgSimple(input);
+    } else {
+        errorExt(display);
+    }
+}
+
+cv::Mat inputImg(char *f_path, char *color) {
+    cv::Mat input;
+    if(strcmp(color, "color") == 0) {
+        input = cv::imread(f_path, cv::ImreadModes::IMREAD_COLOR);
+    } else if(strcmp(color, "ycrcb") == 0) {
+        input = cv::imread(f_path, cv::ImreadModes::IMREAD_COLOR);
+        cvtYCbCr(input);
+    } else if (strcmp(color, "mono") == 0) {
+        input = cv::imread(f_path, cv::ImreadModes::IMREAD_GRAYSCALE);
+    } else {
+        errorExt(color);
+    }
+
+    const int width = input.cols, height = input.rows;
+    printf("width=%d, height=%d\n", width, height);
+
+    return input;
+}
+
+int main(int argc, char *argv[]) {
+    int opt;
+    const char *optstr = "f:c:d:";
+    char *f_path = NULL;
+    char *color = NULL;
+    char *display = NULL;
+
+    cv::Mat input;
+    while((opt = getopt(argc, argv, optstr)) != -1) {
+        switch(opt) {
+            case 'f':
+                if(optarg) {
+                    f_path = optarg;
+                }
+                if(color != NULL) {
+                    input = inputImg(f_path, color);
+                }
+                break;
+
+            case 'c':
+                if(f_path == NULL) {
+                    color = optarg;
+                    continue;
+                }
+                if(optarg) {
+                    color = optarg;
+                    input = inputImg(f_path, optarg);
+                }
+
+                if(input.empty()) {
+                    printf("Image file is not found.\n");
+                    return EXIT_FAILURE;
+                }
+
+                if(display != NULL) {
+                    checkDisplayType(display, input);
+                }
+
+                break;
+
+            case 'd':
+                if(f_path == NULL) {
+                    display = optarg;
+                    continue;
+                }
+                if(color == NULL) {
+                    display = optarg;
+                    continue;
+                }
+
+                if(optarg) {
+                    checkDisplayType(optarg, input);
+                }
+                break;
+        }
+    }
+
+    if(color == NULL) {
+        input = inputImg(f_path, "color");
+    }
+    if(display == NULL) {
+        checkDisplayType("single", input);
+    }
+    
     return EXIT_SUCCESS;
 }
