@@ -17,7 +17,7 @@ typedef struct {
     int Cr;
 } YCbCr;
 
-int cvtYCbCr(cv::Mat data) {
+int cvtYCbCr(cv::Mat &data) {
     const int w = data.cols, h = data.rows, NC = data.channels();
     if(NC < 3)
         return 1;
@@ -66,7 +66,7 @@ int gcm(int a, int b) {
     return r;
 }
 
-void checkered_flag(cv::Mat data) {
+void checkered_flag(cv::Mat &data) {
     const int w = data.cols, h = data.rows, NC = data.channels();
     bool fill = true;
     int gcm_val = gcm(w, h);
@@ -99,7 +99,7 @@ void checkered_flag(cv::Mat data) {
     }
 }
 
-void zebra(cv::Mat data) {
+void zebra(cv::Mat &data) {
     const int w = data.cols, h = data.rows, NC = data.channels();
     bool fill = true;
     int gcm_val = gcm(w, h);
@@ -125,7 +125,7 @@ void zebra(cv::Mat data) {
     }
 }
 
-void blacken_upper_left_corner(cv::Mat data) {
+void blacken_upper_left_corner(cv::Mat &data) {
     const int w = data.cols, h = data.rows, NC = data.channels();
 
     for(int y = 0; y < h / 2; ++y) {
@@ -140,7 +140,7 @@ void blacken_upper_left_corner(cv::Mat data) {
     }
 }
 
-void imgTiled(cv::Mat data) {
+void imgTiled(cv::Mat &data) {
     const int width = data.cols, height = data.rows;
     cv::Mat image[3];
     cv::Mat tiled(height * 2, width * 2, data.type());
@@ -233,12 +233,11 @@ int main(int argc, char *argv[]) {
                 break;
 
             case 'c':
+                color = optarg;
                 if(f_path == NULL) {
-                    color = optarg;
                     continue;
                 }
                 if(optarg) {
-                    color = optarg;
                     input = inputImg(f_path, optarg);
                 }
 
@@ -254,12 +253,11 @@ int main(int argc, char *argv[]) {
                 break;
 
             case 'd':
+                display = optarg;
                 if(f_path == NULL) {
-                    display = optarg;
                     continue;
                 }
                 if(color == NULL) {
-                    display = optarg;
                     continue;
                 }
 
