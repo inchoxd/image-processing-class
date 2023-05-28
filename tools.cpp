@@ -1,3 +1,5 @@
+#include <opencv2/core.hpp>
+#include <opencv2/imgproc.hpp>
 #include "tools.hpp"
 
 int cvtYCbCr(cv::Mat &data) {
@@ -28,4 +30,19 @@ int cvtYCbCr(cv::Mat &data) {
     return 0;
 }
 
-
+void mozaic(cv::Mat &data) {
+    std::vector<cv::Mat> ycrcb;
+    cv::split(data, ycrcb);
+    for(int y = 0; y < ycrcb[0].rows; y += BSIZE) {
+        for(int x = 0; x < ycrcb[0].cols; x += BSIZE) {
+            cv::Mat blk = ycrcb[0](cv::Rect(x, y, BSIZE, BSIZE));
+            for(int i = 0; i < BSIZE; i++) {
+                for(int j = 0; j < BSIZE; j++) {
+                    blk.data[i * ycrcb[0].cols + j] = blk.data[0];
+                }
+            }
+        }
+    }
+    cv::merge(ycrcb, data);
+    cv::cvtColor(data, data, cv::COLOR_YCrCb2BGR);
+}
