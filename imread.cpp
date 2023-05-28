@@ -3,8 +3,6 @@
 #include <string.h>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
-#include <opencv2/imgcodecs.hpp>
-#include <opencv2/imgproc.hpp>
 
 #include "tools.hpp"
 
@@ -158,6 +156,18 @@ void checkDisplayType(char *display, cv::Mat &input) {
     }
 }
 
+void imgPattern(char *pattern, cv::Mat &data) {
+    if(strcmp(pattern, "ulc") == 0) {
+        blacken_upper_left_corner(data);
+    } else if(strcmp(pattern, "zebra") == 0) {
+        zebra(data);
+    } else if(strcmp(pattern, "checkerd") == 0) {
+        checkered_flag(data);
+    } else if(strcmp(pattern, "mozaic") == 0) {
+        mozaic(data);
+    }
+}
+
 cv::Mat inputImg(char *f_path, char *color) {
     cv::Mat input;
     if(strcmp(color, "color") == 0) {
@@ -179,63 +189,52 @@ cv::Mat inputImg(char *f_path, char *color) {
 
 int main(int argc, char *argv[]) {
     int opt;
-    const char *optstr = "f:c:d:";
+    const char *optstr = "f:c:d:p:";
     char *f_path = NULL;
     char *color = NULL;
     char *display = NULL;
+    char *disp_ptn = NULL;
 
     cv::Mat input;
     while((opt = getopt(argc, argv, optstr)) != -1) {
         switch(opt) {
             case 'f':
-                if(optarg) {
-                    f_path = optarg;
-                }
-                if(color != NULL) {
-                    input = inputImg(f_path, color);
-                }
+                f_path = optarg;
                 break;
 
             case 'c':
                 color = optarg;
-                if(f_path == NULL) {
-                    continue;
-                }
-                if(optarg) {
-                    input = inputImg(f_path, optarg);
-                }
-
-                if(input.empty()) {
-                    printf("Image file is not found.\n");
-                    return EXIT_FAILURE;
-                }
-
-                if(display != NULL) {
-                    checkDisplayType(display, input);
-                }
-
                 break;
 
             case 'd':
                 display = optarg;
-                if(f_path == NULL) {
-                    continue;
-                }
-                if(color == NULL) {
-                    continue;
-                }
+                break;
 
-                if(optarg) {
-                    checkDisplayType(optarg, input);
-                }
+            case 'p':
+                disp_ptn = optarg;
                 break;
         }
     }
 
-    if(color == NULL) {
+    if(color != NULL) {
+        input = inputImg(f_path, color);
+    } else {
         input = inputImg(f_path, "color");
     }
-    if(display == NULL) {
+
+    if(disp_ptn != NULL) {
+        if(display == NULL) {
+            display = "single";
+        }
+        if(strcmp(display, "single") > 0 || strcmp(display, "single") < 0) {
+            errorExt(display);
+        }
+        imgPattern(disp_ptn, input);
+    }
+
+    if(display != NULL) {
+        checkDisplayType(display, input);
+    } else {
         checkDisplayType("single", input);
     }
     
