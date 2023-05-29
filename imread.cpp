@@ -1,13 +1,10 @@
 #include <cstdio>
 #include <getopt.h>
-#include <string.h>
-#include <opencv2/imgproc.hpp>
-#include <opencv2/highgui.hpp>
 
 #include "tools.hpp"
 
 int main(int argc, char *argv[]) {
-    int opt;
+    int i, opt;
     const char *optstr = "f:c:d:p:";
     char *f_path = NULL;
     char *color = NULL;
@@ -32,6 +29,12 @@ int main(int argc, char *argv[]) {
             case 'p':
                 disp_ptn = optarg;
                 break;
+        }
+    }
+
+    for(i = optind; i < argc; i++) {
+        if(f_path == NULL) {
+            f_path = argv[i];
         }
     }
 
