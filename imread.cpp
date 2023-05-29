@@ -5,7 +5,7 @@
 
 int main(int argc, char *argv[]) {
     int i, opt;
-    const char *optstr = "f:c:d:p:";
+    const char *optstr = "f:c:d:p:h";
     char *f_path = NULL;
     char *color = NULL;
     char *display = NULL;
@@ -29,6 +29,10 @@ int main(int argc, char *argv[]) {
             case 'p':
                 disp_ptn = optarg;
                 break;
+
+            case 'h':
+                printf("\t-c\tchoose color: color, mono, ycrcb\n\t-d\tchoose display type: single, tiled\n\t-f\tiput file path\n\t-p\tchoose pattern: ulc, zebra, checkerd, mozaic\n");
+                return EXIT_SUCCESS;
         }
     }
 
