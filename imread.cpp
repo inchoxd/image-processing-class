@@ -1,68 +1,46 @@
 #include <cstdio>
-#include <getopt.h>
+#include <opencv2/highgui.hpp>
+#include <opencv2/imgcodecs.hpp>
+#include <opencv2/imgproc.hpp>
+#include <vector>
 
 #include "tools.hpp"
 
 int main(int argc, char *argv[]) {
-    int i, opt;
-    const char *optstr = "f:c:d:p:h";
-    char *f_path = NULL;
-    char *color = NULL;
-    char *display = NULL;
-    char *disp_ptn = NULL;
+  if (argc < 2) {
+    printf("An input image file is missing.\n");
+    return EXIT_FAILURE;
+  }
+  cv::Mat image;
+  image = cv::imread(argv[1], cv::ImreadModes::IMREAD_COLOR);
+  if (image.empty()) {
+    printf("Image file is not found.\n");
+    return EXIT_FAILURE;
+  }
+  bgr2ycrcb(image);
+  std::vector<cv::Mat> ycrcb;
+  cv::split(image, ycrcb);
 
-    cv::Mat input;
-    while((opt = getopt(argc, argv, optstr)) != -1) {
-        switch(opt) {
-            case 'f':
-                f_path = optarg;
-                break;
+  for (int c = 0; c < image.channels(); ++c) {
+    cv::Mat buf;
+    ycrcb[c].convertTo(buf, CV_32F);
 
-            case 'c':
-                color = optarg;
-                break;
+    // encoder
+    blkproc(buf, blk::dct2);
+    blkproc(buf, blk::quantize);
+    // decoder
+    blkproc(buf, blk::dequantize);
+    blkproc(buf, blk::idct2);
 
-            case 'd':
-                display = optarg;
-                break;
+    buf.convertTo(ycrcb[c], ycrcb[c].type());
+  }
 
-            case 'p':
-                disp_ptn = optarg;
-                break;
+  cv::merge(ycrcb, image);
 
-            case 'h':
-                printf("\t-c\tchoose color: color, mono, ycrcb\n\t-d\tchoose display type: single, tiled\n\t-f\tiput file path\n\t-p\tchoose pattern: ulc, zebra, checkerd, mozaic\n");
-                return EXIT_SUCCESS;
-        }
-    }
+  cv::cvtColor(image, image, cv::COLOR_YCrCb2BGR);
+  cv::imshow("image", image);
+  cv::waitKey();
+  cv::destroyAllWindows();
 
-    for(i = optind; i < argc; i++) {
-        if(f_path == NULL) {
-            f_path = argv[i];
-        }
-    }
-
-    if(color != NULL) {
-        input = inputImg(f_path, color);
-    } else {
-        input = inputImg(f_path, "color");
-    }
-
-    if(disp_ptn != NULL) {
-        if(display == NULL) {
-            display = "single";
-        }
-        if(strcmp(display, "single") > 0 || strcmp(display, "single") < 0) {
-            errorExt(display);
-        }
-        imgPattern(disp_ptn, input);
-    }
-
-    if(display != NULL) {
-        checkDisplayType(display, input);
-    } else {
-        checkDisplayType("single", input);
-    }
-    
-    return EXIT_SUCCESS;
+  return EXIT_SUCCESS;
 }

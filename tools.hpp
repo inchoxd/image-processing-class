@@ -1,26 +1,18 @@
 #pragma once
-
-#include <vector>
-#include <string.h>
-#include <opencv2/imgproc.hpp>
-#include <opencv2/highgui.hpp>
+#include <functional>
+#include <opencv2/core.hpp>
 
 #define BSIZE 8
 
-int gcm(int a, int b);
+void bgr2ycrcb(cv::Mat &image);
 
-void checkered_flag(cv::Mat &data);
-void checkered_flag(cv::Mat &data);
-void blacken_upper_left_corner(cv::Mat &data);
-void mozaic(cv::Mat &data);
+void blkproc(cv::Mat &, std::function<void(cv::Mat &, int, float)>, int = 0,
+             float = 0.0F);
 
-int cvtYCbCr(cv::Mat &data);
-
-void checkDisplayType(char *display, cv::Mat &input);
-void imgTiled(cv::Mat &data);
-void imgSingle(cv::Mat &data);
-void imgPattern(char *pattern, cv::Mat &data);
-
-cv::Mat inputImg(char *f_path, char *color);
-
-void errorExt(char *arg);
+namespace blk {
+void mozaic(cv::Mat &in, int p0, float p1);
+void dct2(cv::Mat &in, int p0, float p1);
+void idct2(cv::Mat &in, int p0, float p1);
+void quantize(cv::Mat &in, int p0, float p1);
+void dequantize(cv::Mat &in, int p0, float p1);
+}
