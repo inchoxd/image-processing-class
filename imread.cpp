@@ -35,7 +35,7 @@ int main(int argc, char *argv[]) {
                 break;
 
             case 'h':
-                printf("\t-c\tchoose color type: color, mono, ycrcb\n\t-d\tchoose display type: single, tiled\n\t-f\tinput filepath\n\t-p\tchoose pattern: ulc, zebra, checkerd, mozaic\n\t-q\tinput range from 0 to 100. compresses image use jpeg.");
+                printf("\t-c\tchoose color type: color, mono, ycrcb. default is color.\n\t-d\tchoose display type: single, tiled. default is single.\n\t-f\tinput filepath\n\t-p\tchoose pattern: ulc, zebra, checkerd, mozaic\n\t-q\tinput range from 0 to 100. compresses image use jpeg.");
                 return EXIT_SUCCESS;
         }
     }
@@ -49,7 +49,7 @@ int main(int argc, char *argv[]) {
                 if(f_path == NULL && (argc - optind) < 2) {
                     f_path = argv[i];
                 } else {
-                    printf("too many filepath. filepath may input up to one.\n");
+                    printf("too many filepath. filepath may input up to one. Running bin/imread -h and check options recommend.\n");
                     return EXIT_FAILURE;
                 }
             }
