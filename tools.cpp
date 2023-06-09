@@ -1,5 +1,9 @@
 #include "tools.hpp"
 
+/***************************************************************
+ * functions of display pattern
+***************************************************************/
+
 int gcm(int a, int b) {
     /**
     * NOTE: MAXIMUM VAL IS 128!!!
@@ -21,10 +25,6 @@ int gcm(int a, int b) {
 
     return r;
 }
-
-/***************************************************************
- * functions of display pattern
-***************************************************************/
 
 void checkered_flag(cv::Mat &data) {
     const int w = data.cols, h = data.rows, NC = data.channels();
@@ -121,6 +121,7 @@ void blk::mozaic(cv::Mat &data, int p0, float p1) {
 /***************************************************************
  * functions of processing to jpeg
 ***************************************************************/
+
 int cvtYCbCr(cv::Mat &data) {
     const int w = data.cols, h = data.rows, NC = data.channels();
     // const int STRIDE = w * NC;
