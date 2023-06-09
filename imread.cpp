@@ -1,4 +1,5 @@
 #include <cstdio>
+#include <cstdlib>
 #include <getopt.h>
 
 #include "tools.hpp"
@@ -9,6 +10,7 @@ int main(int argc, char *argv[]) {
     char *f_path = NULL;
     char *color = NULL;
     char *display = NULL;
+    char *quarity = NULL;
     char *disp_ptn = NULL;
 
     cv::Mat input;
@@ -26,12 +28,12 @@ int main(int argc, char *argv[]) {
                 display = optarg;
                 break;
 
-            case 'q':
-                quarity = optarg;
-                break;
-
             case 'p':
                 disp_ptn = optarg;
+                break;
+
+            case 'q':
+                quarity = optarg;
                 break;
 
             case 'h':
@@ -40,9 +42,19 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    for(i = optind; i < argc; i++) {
-        if(f_path == NULL) {
-            f_path = argv[i];
+    if(argc < 2) {
+        printf("An input image file is missing. File path before options or using -f option. Running bin/imread -h and check options recommend.\n");
+        return EXIT_FAILURE;
+    } else {
+        if(optind < argc) {
+            for(i = optind; i < argc; i++) {
+                if(f_path == NULL) {
+                    f_path = argv[i];
+                }
+            }
+        } else {
+            printf("An input image file is missing. File path before options or using -f option. Running bin/imread -h and check options recommend.\n");
+            return EXIT_FAILURE;
         }
     }
 
@@ -60,6 +72,15 @@ int main(int argc, char *argv[]) {
             errorExt(display);
         }
         imgPattern(disp_ptn, input);
+    }
+
+    if(quarity != NULL) {
+        if(display == NULL) {
+            display = "single";
+        }
+        if(strcmp(display, "single") > 0 || strcmp(display, "single") < 0) {
+            errorExt(display);
+        }
     }
 
     if(display != NULL) {
