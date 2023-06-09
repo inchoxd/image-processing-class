@@ -31,5 +31,5 @@
 ### JPEG圧縮
 JPEG圧縮して画像を表示するには以下のコマンドを使用します．0-100の範囲でクオリティを入力します．色空間を`mono`に指定していると使用できません．
 ```shell
-./imread -f $file_path -d tiled
+./imread -f $file_path -q 20
 ```
