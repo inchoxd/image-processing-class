@@ -2,13 +2,13 @@
 
 /***************************************************************
  * functions of display pattern
-***************************************************************/
+ ***************************************************************/
 
 int gcm(int a, int b) {
     /**
-    * NOTE: MAXIMUM VAL IS 128!!!
-    *       MINIMUM VAL IS 2!!!
-    **/
+     * NOTE: MAXIMUM VAL IS 128!!!
+     *       MINIMUM VAL IS 2!!!
+     **/
     int tmp, r = 0;
     tmp = a;
     if(a > b) {
@@ -120,7 +120,7 @@ void blk::mozaic(cv::Mat &data, int p0, float p1) {
 
 /***************************************************************
  * functions of processing to jpeg
-***************************************************************/
+ ***************************************************************/
 
 int cvtYCbCr(cv::Mat &data) {
     const int w = data.cols, h = data.rows, NC = data.channels();
@@ -150,40 +150,43 @@ int cvtYCbCr(cv::Mat &data) {
     return 0;
 }
 
-void blk::quantize(cv::Mat &in, int c, float scale) {
-  in.forEach<float>([&](float &v, const int *pos) -> void {     // opencvの関数で，画素それぞれに処理をかける．無名関数でスコープ内のv, poswを参照．戻り値の型はvoid
-    float stepsize = blk::qmatrix[c][pos[0] * in.cols + pos[1]] * scale;
-    v /= stepsize;  // 画素を1/stepsize
-    v = roundf(v);
-  });
+void blk::quantize(cv::Mat &data, int c, float scale) {
+    data.forEach<float>([&](float &v, const int *pos) -> void {     // opencvの関数で，画素それぞれに処理をかける．無名関数でスコープ内のv, poswを参照．戻り値の型はvoid
+            float stepsize = blk::qmatrix[c][pos[0] * data.cols + pos[1]] * scale;
+            v /= stepsize;  // 画素を1/stepsize
+            v = roundf(v);
+            });
 }
 
-void blk::dequantize(cv::Mat &in, int c, float scale) {
-  in.forEach<float>([&](float &v, const int *pos) -> void {
-    float stepsize = blk::qmatrix[c][pos[0] * in.cols + pos[1]] * scale;
-    v *= stepsize;  // 画素を1/stepsize
-    v = roundf(v);
-  });
+void blk::dequantize(cv::Mat &data, int c, float scale) {
+    data.forEach<float>([&](float &v, const int *pos) -> void {
+            float stepsize = blk::qmatrix[c][pos[0] * data.cols + pos[1]] * scale;
+            v *= stepsize;  // 画素を1/stepsize
+            v = roundf(v);
+            });
 }
 
-void blk::dct2(cv::Mat &in, int p0, float p1) { cv::dct(in, in); }
+void blk::dct2(cv::Mat &data, int p0, float p1) { cv::dct(data, data); }
 
-void blk::idct2(cv::Mat &in, int p0, float p1) { cv::idct(in, in); }
+void blk::idct2(cv::Mat &data, int p0, float p1) { cv::idct(data, data); }
 
-void blkproc(cv::Mat &in, std::function<void(cv::Mat &, int, float)> func, int p0, float p1) {
-    for (int y = 0; y < in.rows; y += BSIZE) {
-        for (int x = 0; x < in.cols; x += BSIZE) {
-            cv::Mat blk_in = in(cv::Rect(x, y, BSIZE, BSIZE)).clone();
-            cv::Mat blk_out = in(cv::Rect(x, y, BSIZE, BSIZE));
+void blkProc(cv::Mat &data, std::function<void(cv::Mat &, int, float)> func, int p0, float p1) {
+    for (int y = 0; y < data.rows; y += BSIZE) {
+        for (int x = 0; x < data.cols; x += BSIZE) {
+            cv::Mat blk_in = data(cv::Rect(x, y, BSIZE, BSIZE)).clone();
+            cv::Mat blk_out = data(cv::Rect(x, y, BSIZE, BSIZE));
             func(blk_in, p0, p1);
             blk_in.convertTo(blk_out, blk_out.type());
         }
     }
 }
 
+void procJpg(cv::Mat &data, int QF) {
+}
+
 /***************************************************************
  * functions of cli option
-***************************************************************/
+ ***************************************************************/
 
 void checkDisplayType(char *display, cv::Mat &input) {
     if(strcmp("tiled", display) == 0) {
@@ -242,7 +245,7 @@ void imgPattern(char *pattern, cv::Mat &data) {
     } else if(strcmp(pattern, "checkerd") == 0) {
         checkered_flag(data);
     } else if(strcmp(pattern, "mozaic") == 0) {
-        blkproc(data, blk::mozaic);
+        blkProc(data, blk::mozaic);
     }
 }
 
