@@ -97,7 +97,7 @@ void blacken_upper_left_corner(cv::Mat &data) {
 }
 
 
-void mozaic(cv::Mat &data) {
+void blk::mozaic(cv::Mat &data, int p0, float p1) {
     std::vector<cv::Mat> ycrcb;
     cv::split(data, ycrcb);
     for(int y = 0; y < ycrcb[0].rows; y += BSIZE) {
@@ -112,6 +112,17 @@ void mozaic(cv::Mat &data) {
     }
     cv::merge(ycrcb, data);
     cv::cvtColor(data, data, cv::COLOR_YCrCb2BGR);
+}
+
+void blkproc(cv::Mat &in, std::function<void(cv::Mat &, int, float)> func, int p0, float p1) {
+    for (int y = 0; y < in.rows; y += BSIZE) {
+        for (int x = 0; x < in.cols; x += BSIZE) {
+            cv::Mat blk_in = in(cv::Rect(x, y, BSIZE, BSIZE)).clone();
+            cv::Mat blk_out = in(cv::Rect(x, y, BSIZE, BSIZE));
+            func(blk_in, p0, p1);
+            blk_in.convertTo(blk_out, blk_out.type());
+        }
+    }
 }
 
 int cvtYCbCr(cv::Mat &data) {
@@ -199,7 +210,7 @@ void imgPattern(char *pattern, cv::Mat &data) {
     } else if(strcmp(pattern, "checkerd") == 0) {
         checkered_flag(data);
     } else if(strcmp(pattern, "mozaic") == 0) {
-        mozaic(data);
+        blkproc(data, blk::mozaic);
     }
 }
 
