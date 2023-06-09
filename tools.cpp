@@ -22,6 +22,10 @@ int gcm(int a, int b) {
     return r;
 }
 
+/***************************************************************
+ * functions of display pattern
+***************************************************************/
+
 void checkered_flag(cv::Mat &data) {
     const int w = data.cols, h = data.rows, NC = data.channels();
     bool fill = true;
@@ -114,6 +118,10 @@ void blk::mozaic(cv::Mat &data, int p0, float p1) {
     cv::cvtColor(data, data, cv::COLOR_YCrCb2BGR);
 }
 
+/***************************************************************
+ * functions of processing to jpeg
+***************************************************************/
+
 void blkproc(cv::Mat &in, std::function<void(cv::Mat &, int, float)> func, int p0, float p1) {
     for (int y = 0; y < in.rows; y += BSIZE) {
         for (int x = 0; x < in.cols; x += BSIZE) {
@@ -152,6 +160,10 @@ int cvtYCbCr(cv::Mat &data) {
 
     return 0;
 }
+
+/***************************************************************
+ * functions of cli option
+***************************************************************/
 
 void checkDisplayType(char *display, cv::Mat &input) {
     if(strcmp("tiled", display) == 0) {
