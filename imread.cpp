@@ -1,5 +1,3 @@
-#include <cstdio>
-#include <cstdlib>
 #include <getopt.h>
 
 #include "tools.hpp"
