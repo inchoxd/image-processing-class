@@ -5,7 +5,7 @@
 
 int main(int argc, char *argv[]) {
     int i, opt;
-    const char *optstr = "f:c:d:p:h";
+    const char *optstr = "f:c:d:p:q:h";
     char *f_path = NULL;
     char *color = NULL;
     char *display = NULL;
@@ -24,6 +24,10 @@ int main(int argc, char *argv[]) {
 
             case 'd':
                 display = optarg;
+                break;
+
+            case 'q':
+                quarity = optarg;
                 break;
 
             case 'p':
