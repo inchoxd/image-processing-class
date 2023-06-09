@@ -282,7 +282,7 @@ void imgPattern(char *pattern, cv::Mat &data) {
 
 cv::Mat inputImg(char *f_path, char *color) {
     cv::Mat input;
-    if(strcmp(color, "color") == 0) {
+    if(strcmp(color, "rgb") == 0) {
         input = cv::imread(f_path, cv::ImreadModes::IMREAD_COLOR);
     } else if(strcmp(color, "ycrcb") == 0) {
         input = cv::imread(f_path, cv::ImreadModes::IMREAD_COLOR);

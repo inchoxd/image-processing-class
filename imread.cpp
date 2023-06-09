@@ -35,7 +35,7 @@ int main(int argc, char *argv[]) {
                 break;
 
             case 'h':
-                printf("\t-c\tchoose color type: color, mono, ycrcb. default is color.\n\t-d\tchoose display type: single, tiled. default is single.\n\t-f\tinput filepath\n\t-p\tchoose pattern: ulc, zebra, checkerd, mozaic\n\t-q\tinput range from 0 to 100. compresses image use jpeg.");
+                printf("\t-c\tchoose color type: rgb, mono, ycrcb. default is rgb.\n\t-d\tchoose display type: single, tiled. default is single.\n\t-f\tinput filepath\n\t-p\tchoose pattern: ulc, zebra, checkerd, mozaic\n\t-q\tinput range from 0 to 100. compresses image use jpeg.");
                 return EXIT_SUCCESS;
         }
     }
@@ -63,7 +63,7 @@ int main(int argc, char *argv[]) {
     if(color != NULL) {
         input = inputImg(f_path, color);
     } else {
-        color = "color";
+        color = "rgb";
         input = inputImg(f_path, color);
     }
 
