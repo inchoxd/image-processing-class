@@ -15,6 +15,7 @@ void blacken_upper_left_corner(cv::Mat &data);
 
 int cvtYCbCr(cv::Mat &data);
 
+void blkproc(cv::Mat &, std::function<void(cv::Mat &, int, float)>, int = 0, float = 0.0F);
 namespace blk {
     constexpr float qmatrix[3][64] = {
         {
