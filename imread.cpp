@@ -35,7 +35,7 @@ int main(int argc, char *argv[]) {
                 break;
 
             case 'h':
-                printf("\t-c\tchoose color: color, mono, ycrcb\n\t-d\tchoose display type: single, tiled\n\t-f\tiput file path\n\t-p\tchoose pattern: ulc, zebra, checkerd, mozaic\n");
+                printf("\t-c\tchoose color type: color, mono, ycrcb\n\t-d\tchoose display type: single, tiled\n\t-f\tiput file path\n\t-p\tchoose pattern: ulc, zebra, checkerd, mozaic\n\t-q\tinput range from 0 to 100. compresses image use jpeg.");
                 return EXIT_SUCCESS;
         }
     }
