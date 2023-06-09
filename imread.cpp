@@ -44,15 +44,16 @@ int main(int argc, char *argv[]) {
         printf("An input image file is missing. File path before options or using -f option. Running bin/imread -h and check options recommend.\n");
         return EXIT_FAILURE;
     } else {
-        if(optind < argc) {
+        if((argc - optind) > 0) {
             for(i = optind; i < argc; i++) {
                 if(f_path == NULL) {
                     f_path = argv[i];
                 }
             }
         } else {
-            printf("An input image file is missing. File path before options or using -f option. Running bin/imread -h and check options recommend.\n");
-            return EXIT_FAILURE;
+            if(f_path == NULL) {
+                return EXIT_FAILURE;
+            }
         }
     }
 
