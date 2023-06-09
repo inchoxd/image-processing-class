@@ -182,6 +182,37 @@ void blkProc(cv::Mat &data, std::function<void(cv::Mat &, int, float)> func, int
 }
 
 void procJpg(cv::Mat &data, int QF) {
+    QF = (QF == 0) ? 1 : QF;    // if(QF==0) QF = 1;
+    float scale;
+    if(QF < 50) {
+        scale = floorf(5000.0 / QF);
+    } else {
+        scale = 200 - QF * 2;
+    }
+    scale /= 100.0;
+    scale = (scale < FLT_EPSILON) ? FLT_EPSILON : scale;
+
+    cvtYCbCr(data);
+    std::vector<cv::Mat> ycrcb;
+    cv::split(data, ycrcb);
+
+    for (int c = 0; c < data.channels(); ++c) {
+        cv::Mat buf;
+        ycrcb[c].convertTo(buf, CV_32F);
+        
+        // encoder
+        blkProc(buf, blk::dct2);
+        blkProc(buf, blk::quantize, c, scale);
+        // decoder
+        blkProc(buf, blk::dequantize, c, scale);
+        blkProc(buf, blk::idct2);
+
+        buf.convertTo(ycrcb[c], ycrcb[c].type());
+    }
+
+    cv::merge(ycrcb, data);
+
+    cv::cvtColor(data, data, cv::COLOR_YCrCb2BGR);
 }
 
 /***************************************************************

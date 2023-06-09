@@ -59,7 +59,8 @@ int main(int argc, char *argv[]) {
     if(color != NULL) {
         input = inputImg(f_path, color);
     } else {
-        input = inputImg(f_path, "color");
+        color = "color";
+        input = inputImg(f_path, color);
     }
 
     if(disp_ptn != NULL) {
@@ -73,12 +74,15 @@ int main(int argc, char *argv[]) {
     }
 
     if(quarity != NULL) {
-        if(display == NULL) {
-            display = "single";
+        if(strcmp(color, "mono") == 0) {
+            errorExt(color);
         }
-        if(strcmp(display, "single") > 0 || strcmp(display, "single") < 0) {
-            errorExt(display);
+        int QF = strtol(quarity, nullptr, 10);  // Quarity Factor
+        if(QF < 0 || QF > 100) {
+            printf("Valid range for Qfactor is from 0 to 100\n");
+            return EXIT_FAILURE;
         }
+        procJpg(input, QF);
     }
 
     if(display != NULL) {
