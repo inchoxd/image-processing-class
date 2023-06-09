@@ -1,9 +1,14 @@
 #pragma once
 
-#include <vector>
+#include <cfloat>
+#include <cstddef>
+#include <cstdio>
+#include <math.h>
 #include <string.h>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
+#include <opencv2/imgcodecs.hpp>
+#include <vector>
 
 #define BSIZE 8
 
@@ -23,7 +28,7 @@ void blacken_upper_left_corner(cv::Mat &data);
 
 int cvtYCbCr(cv::Mat &data);
 
-void blkproc(cv::Mat &, std::function<void(cv::Mat &, int, float)>, int = 0, float = 0.0F);
+void blkProc(cv::Mat &, std::function<void(cv::Mat &, int, float)>, int = 0, float = 0.0F);
 namespace blk {
     constexpr float qmatrix[3][64] = {
         {
@@ -60,5 +65,6 @@ void checkDisplayType(char *display, cv::Mat &input);
 void imgTiled(cv::Mat &data);
 void imgSingle(cv::Mat &data);
 void imgPattern(char *pattern, cv::Mat &data);
+void procJpg(cv::Mat &data, int QF);
 cv::Mat inputImg(char *f_path, char *color);
 void errorExt(char *arg);
