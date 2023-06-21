@@ -1,4 +1,7 @@
 #include "tools.hpp"
+#include <cstdint>
+#include <math.h>
+#include <opencv2/imgproc.hpp>
 
 /***************************************************************
  * functions of display pattern
@@ -151,6 +154,9 @@ int cvtYCbCr(cv::Mat &data) {
 }
 
 void blk::quantize(cv::Mat &data, int c, float scale) {
+    if(scale < 0.0) {   // scalseが小さすぎる場合は量子化しない．QF = 100の場合は処理させない．
+        return;
+    }
     data.forEach<float>([&](float &v, const int *pos) -> void {     // opencvの関数で，画素それぞれに処理をかける．無名関数でスコープ内のv, poswを参照．戻り値の型はvoid
             float stepsize = blk::qmatrix[c][pos[0] * data.cols + pos[1]] * scale;
             v /= stepsize;  // 画素を1/stepsize
@@ -159,6 +165,9 @@ void blk::quantize(cv::Mat &data, int c, float scale) {
 }
 
 void blk::dequantize(cv::Mat &data, int c, float scale) {
+    if(scale < 0.0) {
+        return;
+    }
     data.forEach<float>([&](float &v, const int *pos) -> void {
             float stepsize = blk::qmatrix[c][pos[0] * data.cols + pos[1]] * scale;
             v *= stepsize;  // 画素を1/stepsize
@@ -181,7 +190,43 @@ void blkProc(cv::Mat &data, std::function<void(cv::Mat &, int, float)> func, int
     }
 }
 
-void procJpg(cv::Mat &data, int QF) {
+void psnr(cv::Mat &orgn, cv::Mat &data) {
+    float PSNR = 0, MSE = 0, diff = 0;
+    int M = orgn.cols, N = orgn.rows;
+    int c = orgn.channels();
+    uchar *op0, *op1, *op2, *dp0, *dp1, *dp2;
+    float depth = (orgn.depth() == 0) ? 8 : 0;
+
+    for(int i = 0; i < c; ++i){
+        switch(i) {
+            case 0:
+                op0 = orgn.data;
+                dp0 = data.data;
+            case 1:
+                op1 = orgn.data + 1;
+                dp1 = data.data + 1;
+            case 2:
+                op2 = orgn.data + 2;
+                dp2 = data.data + 2;
+        }
+    }
+    for(int y = 0; y < N; ++y) {
+        for(int x = 0; x < M; ++x, op0 += c, op1 += c, op2 += c, dp0 += c, dp1 += c, dp2 += c) {
+            float orgn_pxl_avg = (*op0 + *op1 + *op2) / c;
+            float data_pxl_avg = (*dp0 + *dp1 + *dp2) / c;
+            diff += orgn_pxl_avg - data_pxl_avg;
+        }
+    }
+    MSE = pow(diff, 2.0) / (M * N);
+    PSNR = 10 * log10(pow((pow(2.0, depth) - 1), 2.0) / MSE);
+    printf("PSNR = %f\n", PSNR);
+}
+
+void procJpg(cv::Mat &data, int QF, int PSNR) {
+    PSNR = 1;
+    cv::Mat orgn;
+    if(PSNR)
+        orgn = data.clone();
     QF = (QF == 0) ? 1 : QF;    // if(QF==0) QF = 1;
     float scale;
     if(QF < 50) {
@@ -190,16 +235,18 @@ void procJpg(cv::Mat &data, int QF) {
         scale = 200 - QF * 2;
     }
     scale /= 100.0;
-    scale = (scale < FLT_EPSILON) ? FLT_EPSILON : scale;
+    scale = (scale < FLT_EPSILON) ? -1.0 : scale;
 
     cvtYCbCr(data);
     std::vector<cv::Mat> ycrcb;
     cv::split(data, ycrcb);
 
     for (int c = 0; c < data.channels(); ++c) {
+        if(c > 0) {
+            cv::resize(ycrcb[c], ycrcb[c], cv::Size(), 0.5, 0.5, cv::INTER_AREA);
+        }
         cv::Mat buf;
         ycrcb[c].convertTo(buf, CV_32F);
-        
         // encoder
         blkProc(buf, blk::dct2);
         blkProc(buf, blk::quantize, c, scale);
@@ -208,11 +255,17 @@ void procJpg(cv::Mat &data, int QF) {
         blkProc(buf, blk::idct2);
 
         buf.convertTo(ycrcb[c], ycrcb[c].type());
+        if(c > 0) {
+            cv::resize(ycrcb[c], ycrcb[c], cv::Size(), 2, 2, cv::INTER_AREA);
+        }
     }
 
     cv::merge(ycrcb, data);
-
     cv::cvtColor(data, data, cv::COLOR_YCrCb2BGR);
+
+    // psnr
+    if(PSNR)
+        psnr(orgn, data);
 }
 
 /***************************************************************

@@ -65,6 +65,7 @@ void checkDisplayType(char *display, cv::Mat &input);
 void imgTiled(cv::Mat &data);
 void imgSingle(cv::Mat &data);
 void imgPattern(char *pattern, cv::Mat &data);
-void procJpg(cv::Mat &data, int QF);
+void psnr(cv::Mat &orgn, cv::Mat &data);
+void procJpg(cv::Mat &data, int QF, int PSNR = 0);
 cv::Mat inputImg(char *f_path, char *color);
 void errorExt(char *arg);
