@@ -202,12 +202,15 @@ void psnr(cv::Mat &orgn, cv::Mat &data) {
             case 0:
                 op0 = orgn.data;
                 dp0 = data.data;
+                break;
             case 1:
                 op1 = orgn.data + 1;
                 dp1 = data.data + 1;
+                break;
             case 2:
                 op2 = orgn.data + 2;
                 dp2 = data.data + 2;
+                break;
         }
     }
     for(int y = 0; y < N; ++y) {
