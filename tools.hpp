@@ -32,7 +32,7 @@ void blacken_upper_left_corner(cv::Mat &data);
 int cvtYCbCr(cv::Mat &data);
 
 void blkProc(cv::Mat &, std::function<void(cv::Mat &, int *)>, int * = nullptr);
-void Encode_MCUs(std::vector<cv::Mat> &, bitstream &);
+void Encode_MCUs(std::vector<cv::Mat> &, bitstream &, int YCCtype);
 namespace blk {
     constexpr float qmatrix[3][64] = {
         {
