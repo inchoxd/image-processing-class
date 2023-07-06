@@ -5,6 +5,8 @@
 #include <opencv2/imgproc.hpp>
 #include "huffman_tables.hpp"
 #include "bitstream.hpp"
+#include "jpgheaders.hpp"
+#include "ycctype.hpp"
 #include <x86intrin.h>
 
 /***************************************************************
@@ -257,10 +259,10 @@ void mypsnr(cv::Mat &ref, cv::Mat &img) {
 void EncodeDC(int diff, const uint32_t *Ctable, const uint32_t *Ltable, bitstream &enc) {
     uint32_t uval = (diff < 0) ? -diff:diff;
     uint32_t s = 32 - _lzcnt_u32(uval);    
-    enc.put_bits(Ctable[(diff << 4) + s], Ltable[(diff << 4) + s]);
+    enc.put_bits(Ctable[s], Ltable[s]);
     if(s != 0) {
-        if(uval < 0) {
-            uval -= 1;
+        if(diff < 0) {
+            diff -= 1;
 
         }
         enc.put_bits(diff, s);
@@ -269,7 +271,7 @@ void EncodeDC(int diff, const uint32_t *Ctable, const uint32_t *Ltable, bitstrea
 
 void EncodeAC(int run, int val, const uint32_t *Ctable, const uint32_t *Ltable, bitstream &enc) {
     uint32_t uval = (val < 0) ? -val:val;
-    uint32_t s = _lzcnt_u32(uval);    
+    uint32_t s = 32 - _lzcnt_u32(uval);    
     enc.put_bits(Ctable[(run << 4) + s], Ltable[(run << 4) + s]);
     if(s != 0) {
         if(val < 0) {
@@ -290,7 +292,7 @@ void EncodeBlock(cv::Mat &data, int c, int &prev_dc, bitstream &enc) {
 
     int run = 0;    // 0が連続する個数
     // AC
-    for(int i = 0; i < 64; ++i) {
+    for(int i = 1; i < 64; ++i) {
         int ac = p[scan[i]];
         if(ac == 0) {
             run++;
@@ -301,7 +303,7 @@ void EncodeBlock(cv::Mat &data, int c, int &prev_dc, bitstream &enc) {
                 run -= 16;
             }
             // Encode non-zero AC with Huffman
-            EncodeAC(0xF, 0x0,  AC_cwd[c], AC_len[c], enc);
+            EncodeAC(run, ac,  AC_cwd[c], AC_len[c], enc);
             run = 0;
         }
     }
@@ -311,40 +313,49 @@ void EncodeBlock(cv::Mat &data, int c, int &prev_dc, bitstream &enc) {
     }
 }
 
-void Encode_MCUs(std::vector<cv::Mat> &buf, bitstream &enc) {
+void Encode_MCUs(std::vector<cv::Mat> &buf, bitstream &enc, int YCCtype) {
     const int height = buf[0].rows;
     const int width = buf[0].cols;
-    const int H = 2;
-    const int V = 2;
+    int H, V;
+    switch(YCCtype) {
+        case YCC::YUV420:
+            H = V = 2;
+            break;
+        case YCC::GRAY:
+            H = V = 1;
+            break;
+        default:
+            H = V = 0;
+            break;
+    }
     cv::Mat blk;
     int prev_dc[3] = {0};
 
-    for(int Ly = 0, Cy = 0; Ly < width; Ly += BSIZE * V, Cy += BSIZE) {
-        for(int Lx = 0, Cx = 0; Lx < height; Lx += BSIZE * H, Cx += BSIZE) {
-            for(int y = 0; y < 2; y++) {
-                for(int x = 0; x < 2; x++) {
+    for(int Ly = 0, Cy = 0; Ly < height; Ly += BSIZE * V, Cy += BSIZE) {
+        for(int Lx = 0, Cx = 0; Lx < width; Lx += BSIZE * H, Cx += BSIZE) {
+            for(int y = 0; y < V; y++) {
+                for(int x = 0; x < H; x++) {
                     blk = buf[0](cv::Rect(Lx + BSIZE * x, Ly + BSIZE * y, BSIZE, BSIZE)).clone();
                     EncodeBlock(blk, 0, prev_dc[0], enc);
                 }
             }
             if(buf.size() == 3) {
                 //Cb
-                blk = buf[2](cv::Rect(Lx + BSIZE, Ly + BSIZE, BSIZE, BSIZE)).clone();
+                blk = buf[2](cv::Rect(Cx, Cy, BSIZE, BSIZE)).clone();
                 EncodeBlock(blk, 1, prev_dc[1], enc);
                 //Cr
-                blk = buf[2](cv::Rect(Lx + BSIZE, Ly + BSIZE, BSIZE, BSIZE)).clone();
+                blk = buf[1](cv::Rect(Cx, Cy, BSIZE, BSIZE)).clone();
                 EncodeBlock(blk, 1, prev_dc[2], enc);
             }
         }
     }
-
 }
 
-void procJpg(cv::Mat &data, int QF, int PSNR) {
+void procJpg(cv::Mat &image, int QF, int PSNR) {
     PSNR = 1;
     cv::Mat orgn;
     if(PSNR)
-        orgn = data.clone();
+        orgn = image.clone();
     QF = (QF == 0) ? 1 : QF;    // if(QF==0) QF = 1;
     float scale;
     if(QF < 50) {
@@ -358,14 +369,18 @@ void procJpg(cv::Mat &data, int QF, int PSNR) {
     createQtable(0, scale, qtable_C);
 
     bitstream enc;
-    if(data.channels() == 3) cvtYCbCr(data);
-    std::vector<cv::Mat> ycrcb;
-    std::vector<cv::Mat> buf(data.channels());
-    cv::split(data, ycrcb);
+    int YCCtype = (image.channels() == 3) ? YCC::YUV420 : YCC::GRAY;
+    
+    create_mainheader(image.cols, image.rows, image.channels(), qtable_L, qtable_C, YCCtype, enc);
 
-    constexpr float D = 2;
+    if(image.channels() == 3) cvtYCbCr(image);
+    std::vector<cv::Mat> ycrcb;
+    std::vector<cv::Mat> buf(image.channels());
+    cv::split(image, ycrcb);
+
+    // constexpr float D = 2;
     // encoder
-    for (int c = 0; c < data.channels(); ++c) {
+    for (int c = 0; c < image.channels(); ++c) {
         int *qtable = qtable_L;
         if(c > 0) {
             qtable = qtable_C;
@@ -376,11 +391,15 @@ void procJpg(cv::Mat &data, int QF, int PSNR) {
         blkProc(buf[c], blk::dct2);
         blkProc(buf[c], blk::quantize, qtable);
     }
-    Encode_MCUs(buf, enc);
+    Encode_MCUs(buf, enc, YCCtype);
     const std::vector<uint8_t> codestream = enc.finalize();
     printf("codestream size = %d\n", codestream.size());
+
+    FILE *fout = fopen("myjpeg.jpg", "wb");
+    fwrite(codestream.data(), sizeof(unsigned char), codestream.size(), fout);
+    fclose(fout);
     // decoder
-    for (int c = 0; c < data.channels(); ++c) {
+    for (int c = 0; c < image.channels(); ++c) {
         int *qtable = qtable_L;
         if(c > 0) {
             qtable = qtable_C;
@@ -395,12 +414,14 @@ void procJpg(cv::Mat &data, int QF, int PSNR) {
         }
     }
 
-    cv::merge(ycrcb, data);
-    cv::cvtColor(data, data, cv::COLOR_YCrCb2BGR);
+    cv::merge(ycrcb, image);
+    cv::cvtColor(image, image, cv::COLOR_YCrCb2BGR);
 
+    /**
     // psnr
     if(PSNR)
-        psnr(orgn, data);
+        psnr(orgn, image);
+    **/
 }
 
 /***************************************************************
