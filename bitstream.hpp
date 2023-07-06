@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <cassert>
 #include <vector>
+#include "jpgmarkers.hpp"
 
 class bitstream {
     private:
@@ -12,7 +13,7 @@ class bitstream {
         std::vector<uint8_t> stream;
 
     public:
-        bitstream(): bits(0), tmp(0) {}
+        bitstream(): bits(0), tmp(0) { put_word(SOI); }
         // 1バイトを書き込む
         void put_byte(uint8_t data) { stream.push_back(data); }
         // 2バイトを書き込む
@@ -57,7 +58,7 @@ class bitstream {
 
         auto finalize() {
             flush();
-
+            put_word(EOI);
             return std::move(stream);
         }
 };
