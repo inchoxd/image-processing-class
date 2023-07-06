@@ -1,7 +1,11 @@
 #include "tools.hpp"
+#include "zigzag_order.hpp"
 #include <cstdint>
 #include <math.h>
 #include <opencv2/imgproc.hpp>
+#include "huffman_tables.hpp"
+#include "bitstream.hpp"
+#include <x86intrin.h>
 
 /***************************************************************
  * functions of display pattern
@@ -104,7 +108,7 @@ void blacken_upper_left_corner(cv::Mat &data) {
 }
 
 
-void blk::mozaic(cv::Mat &data, int p0, float p1) {
+void blk::mozaic(cv::Mat &data, int *p) {
     std::vector<cv::Mat> ycrcb;
     cv::split(data, ycrcb);
     for(int y = 0; y < ycrcb[0].rows; y += BSIZE) {
@@ -153,42 +157,54 @@ int cvtYCbCr(cv::Mat &data) {
     return 0;
 }
 
-void blk::quantize(cv::Mat &data, int c, float scale) {
-    if(scale < 0.0) {   // scalseが小さすぎる場合は量子化しない．QF = 100の場合は処理させない．
-        return;
-    }
+void blk::quantize(cv::Mat &data, int *qtable) {
     data.forEach<float>([&](float &v, const int *pos) -> void {     // opencvの関数で，画素それぞれに処理をかける．無名関数でスコープ内のv, poswを参照．戻り値の型はvoid
-            float stepsize = blk::qmatrix[c][pos[0] * data.cols + pos[1]] * scale;
-            v /= stepsize;  // 画素を1/stepsize
+            v /= qtable[pos[0] * data.cols + pos[1]];  // 画素を1/stepsize
             v = roundf(v);
             });
+    // float *p = (float *)data.data;
+    // for(int i = 0; i < 64; i++) {
+    //     printf("%d ", (int)p[scan[i]]);
+    // }
+    // printf("\n");
 }
 
-void blk::dequantize(cv::Mat &data, int c, float scale) {
-    if(scale < 0.0) {
-        return;
-    }
+void blk::dequantize(cv::Mat &data, int *qtable) {
     data.forEach<float>([&](float &v, const int *pos) -> void {
-            float stepsize = blk::qmatrix[c][pos[0] * data.cols + pos[1]] * scale;
-            v *= stepsize;  // 画素を1/stepsize
+            v *= qtable[pos[0] * data.cols + pos[1]];  // 画素を1/stepsize
             v = roundf(v);
             });
 }
 
-void blk::dct2(cv::Mat &data, int p0, float p1) { cv::dct(data, data); }
+void blk::dct2(cv::Mat &data, int *p) { cv::dct(data, data); }
 
-void blk::idct2(cv::Mat &data, int p0, float p1) { cv::idct(data, data); }
+void blk::idct2(cv::Mat &data, int *p) { cv::idct(data, data); }
 
-void blkProc(cv::Mat &data, std::function<void(cv::Mat &, int, float)> func, int p0, float p1) {
+void blkProc(cv::Mat &data, std::function<void(cv::Mat &, int *p)> func, int *p) {
     for (int y = 0; y < data.rows; y += BSIZE) {
         for (int x = 0; x < data.cols; x += BSIZE) {
             cv::Mat blk_in = data(cv::Rect(x, y, BSIZE, BSIZE)).clone();
             cv::Mat blk_out = data(cv::Rect(x, y, BSIZE, BSIZE));
-            func(blk_in, p0, p1);
+            func(blk_in, p);
             blk_in.convertTo(blk_out, blk_out.type());
         }
     }
 }
+
+void createQtable(int c, float scale, int *qtable) {
+    for(int i = 0; i < 64; ++i) {
+        float stepsize = (blk::qmatrix[c][i] * scale + 50.0) / 100.0;
+        stepsize = floor(stepsize);
+        if(stepsize < 1.0) {
+            stepsize = 1;
+        }
+        if(stepsize > 255) {
+            stepsize = 255;
+        }
+        qtable[i] = stepsize;
+    }
+}
+
 
 void psnr(cv::Mat &orgn, cv::Mat &data) {
     float PSNR = 0, MSE = 0, diff = 0;
@@ -225,6 +241,105 @@ void psnr(cv::Mat &orgn, cv::Mat &data) {
     printf("PSNR = %f\n", PSNR);
 }
 
+/**
+void mypsnr(cv::Mat &ref, cv::Mat &img) {
+    auto PSNR = cv::quality::QualityPSNR::create(ref);
+    cv::Scalar a = PSNR ->compute(img);
+    double tmp = 0.0;
+    for(int c = 0; c < ref.channels(); ++c) {
+        tmp += a[c];
+    }
+    tmp /= ref.channels();
+    printf("PSNR = %f [dB]\n", tmp);
+}
+**/
+
+void EncodeDC(int diff, const uint32_t *Ctable, const uint32_t *Ltable, bitstream &enc) {
+    uint32_t uval = (diff < 0) ? -diff:diff;
+    uint32_t s = 32 - _lzcnt_u32(uval);    
+    enc.put_bits(Ctable[(diff << 4) + s], Ltable[(diff << 4) + s]);
+    if(s != 0) {
+        if(uval < 0) {
+            uval -= 1;
+
+        }
+        enc.put_bits(diff, s);
+    }
+}
+
+void EncodeAC(int run, int val, const uint32_t *Ctable, const uint32_t *Ltable, bitstream &enc) {
+    uint32_t uval = (val < 0) ? -val:val;
+    uint32_t s = _lzcnt_u32(uval);    
+    enc.put_bits(Ctable[(run << 4) + s], Ltable[(run << 4) + s]);
+    if(s != 0) {
+        if(val < 0) {
+            val -= 1;
+
+        }
+        enc.put_bits(val, s);
+    }
+}
+
+void EncodeBlock(cv::Mat &data, int c, int &prev_dc, bitstream &enc) {
+    float *p = (float *)data.data;
+    // DC
+    int diff = p[0] - prev_dc;
+    prev_dc = p[0];
+    // EncodeDC with Huffman
+    EncodeDC(diff, DC_cwd[c], DC_len[c], enc);
+
+    int run = 0;    // 0が連続する個数
+    // AC
+    for(int i = 0; i < 64; ++i) {
+        int ac = p[scan[i]];
+        if(ac == 0) {
+            run++;
+        } else {
+            while(run > 15) {
+                // Encode ZRL whith Huffman
+                EncodeAC(0xF, 0x0,  AC_cwd[c], AC_len[c], enc);
+                run -= 16;
+            }
+            // Encode non-zero AC with Huffman
+            EncodeAC(0xF, 0x0,  AC_cwd[c], AC_len[c], enc);
+            run = 0;
+        }
+    }
+    if(run) {
+        // Encode EOB with Huffman
+        EncodeAC(0x0, 0x0,  AC_cwd[c], AC_len[c], enc);
+    }
+}
+
+void Encode_MCUs(std::vector<cv::Mat> &buf, bitstream &enc) {
+    const int height = buf[0].rows;
+    const int width = buf[0].cols;
+    const int H = 2;
+    const int V = 2;
+    cv::Mat blk;
+    int prev_dc[3] = {0};
+
+    for(int Ly = 0, Cy = 0; Ly < width; Ly += BSIZE * V, Cy += BSIZE) {
+        for(int Lx = 0, Cx = 0; Lx < height; Lx += BSIZE * H, Cx += BSIZE) {
+            for(int y = 0; y < 2; y++) {
+                for(int x = 0; x < 2; x++) {
+                    blk = buf[0](cv::Rect(Lx + BSIZE * x, Ly + BSIZE * y, BSIZE, BSIZE)).clone();
+                    EncodeBlock(blk, 0, prev_dc[0], enc);
+                }
+            }
+            if(buf.size() == 3) {
+                //Cb
+                blk = buf[2](cv::Rect(Lx + BSIZE, Ly + BSIZE, BSIZE, BSIZE)).clone();
+                EncodeBlock(blk, 1, prev_dc[1], enc);
+                //Cr
+                blk = buf[2](cv::Rect(Lx + BSIZE, Ly + BSIZE, BSIZE, BSIZE)).clone();
+                EncodeBlock(blk, 1, prev_dc[2], enc);
+            }
+        }
+    }
+
+}
+
 void procJpg(cv::Mat &data, int QF, int PSNR) {
     PSNR = 1;
     cv::Mat orgn;
@@ -237,29 +352,46 @@ void procJpg(cv::Mat &data, int QF, int PSNR) {
     } else {
         scale = 200 - QF * 2;
     }
-    scale /= 100.0;
-    scale = (scale < FLT_EPSILON) ? -1.0 : scale;
 
-    cvtYCbCr(data);
+    int qtable_L[64], qtable_C[64];
+    createQtable(0, scale, qtable_L);
+    createQtable(0, scale, qtable_C);
+
+    bitstream enc;
+    if(data.channels() == 3) cvtYCbCr(data);
     std::vector<cv::Mat> ycrcb;
+    std::vector<cv::Mat> buf(data.channels());
     cv::split(data, ycrcb);
 
+    constexpr float D = 2;
+    // encoder
     for (int c = 0; c < data.channels(); ++c) {
+        int *qtable = qtable_L;
         if(c > 0) {
-            cv::resize(ycrcb[c], ycrcb[c], cv::Size(), 0.5, 0.5, cv::INTER_AREA);
+            qtable = qtable_C;
+            cv::resize(ycrcb[c], ycrcb[c], cv::Size(), 0.5, 0.5, cv::INTER_LINEAR_EXACT);
         }
-        cv::Mat buf;
-        ycrcb[c].convertTo(buf, CV_32F);
-        // encoder
-        blkProc(buf, blk::dct2);
-        blkProc(buf, blk::quantize, c, scale);
-        // decoder
-        blkProc(buf, blk::dequantize, c, scale);
-        blkProc(buf, blk::idct2);
-
-        buf.convertTo(ycrcb[c], ycrcb[c].type());
+        ycrcb[c].convertTo(buf[c], CV_32F);
+        buf[c] -= 128.0;    // DC level shift
+        blkProc(buf[c], blk::dct2);
+        blkProc(buf[c], blk::quantize, qtable);
+    }
+    Encode_MCUs(buf, enc);
+    const std::vector<uint8_t> codestream = enc.finalize();
+    printf("codestream size = %d\n", codestream.size());
+    // decoder
+    for (int c = 0; c < data.channels(); ++c) {
+        int *qtable = qtable_L;
         if(c > 0) {
-            cv::resize(ycrcb[c], ycrcb[c], cv::Size(), 2, 2, cv::INTER_AREA);
+            qtable = qtable_C;
+        }
+        blkProc(buf[c], blk::dequantize, qtable);
+        blkProc(buf[c], blk::idct2);
+        buf[c] += 128.0;    // Inverse DC level shift
+
+        buf[c].convertTo(ycrcb[c], ycrcb[c].type());
+        if(c > 0) {
+            cv::resize(ycrcb[c], ycrcb[c], cv::Size(), 2, 2, cv::INTER_LINEAR_EXACT);
         }
     }
 
