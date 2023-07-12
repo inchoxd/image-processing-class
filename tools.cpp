@@ -1,6 +1,7 @@
 #include "tools.hpp"
 #include "zigzag_order.hpp"
 #include <cstdint>
+#include <ctime>
 #include <math.h>
 #include <opencv2/imgproc.hpp>
 #include "huffman_tables.hpp"
@@ -352,6 +353,8 @@ void Encode_MCUs(std::vector<cv::Mat> &buf, bitstream &enc, int YCCtype) {
 }
 
 void procJpg(cv::Mat &image, int QF, int PSNR) {
+    timer_counter prcJpgStm;
+    prcJpgStm.procJpg_start_time = clock();
     PSNR = 1;
     cv::Mat orgn;
     if(PSNR)
@@ -365,13 +368,17 @@ void procJpg(cv::Mat &image, int QF, int PSNR) {
     }
 
     int qtable_L[64], qtable_C[64];
+    prcJpgStm.start_time = clock();
     createQtable(0, scale, qtable_L);
     createQtable(0, scale, qtable_C);
+    prcJpgStm.func_createQtable = clock() - prcJpgStm.start_time;
 
     bitstream enc;
     int YCCtype = (image.channels() == 3) ? YCC::YUV420 : YCC::GRAY;
     
+    prcJpgStm.start_time = clock();
     create_mainheader(image.cols, image.rows, image.channels(), qtable_L, qtable_C, YCCtype, enc);
+    prcJpgStm.func_create_main_header = clock() - prcJpgStm.start_time;
 
     if(image.channels() == 3) cvtYCbCr(image);
     std::vector<cv::Mat> ycrcb;
@@ -380,6 +387,7 @@ void procJpg(cv::Mat &image, int QF, int PSNR) {
 
     // constexpr float D = 2;
     // encoder
+    prcJpgStm.start_time = clock();
     for (int c = 0; c < image.channels(); ++c) {
         int *qtable = qtable_L;
         if(c > 0) {
@@ -394,11 +402,13 @@ void procJpg(cv::Mat &image, int QF, int PSNR) {
     Encode_MCUs(buf, enc, YCCtype);
     const std::vector<uint8_t> codestream = enc.finalize();
     printf("codestream size = %d\n", codestream.size());
+    prcJpgStm.proc_encoder = clock() - prcJpgStm.start_time;
 
     FILE *fout = fopen("myjpeg.jpg", "wb");
     fwrite(codestream.data(), sizeof(unsigned char), codestream.size(), fout);
     fclose(fout);
     // decoder
+    prcJpgStm.start_time = clock();
     for (int c = 0; c < image.channels(); ++c) {
         int *qtable = qtable_L;
         if(c > 0) {
@@ -413,6 +423,7 @@ void procJpg(cv::Mat &image, int QF, int PSNR) {
             cv::resize(ycrcb[c], ycrcb[c], cv::Size(), 2, 2, cv::INTER_LINEAR_EXACT);
         }
     }
+    prcJpgStm.proc_decoder = clock() - prcJpgStm.start_time;
 
     cv::merge(ycrcb, image);
     cv::cvtColor(image, image, cv::COLOR_YCrCb2BGR);
@@ -422,6 +433,12 @@ void procJpg(cv::Mat &image, int QF, int PSNR) {
     if(PSNR)
         psnr(orgn, image);
     **/
+    prcJpgStm.func_procJpg = clock() - prcJpgStm.procJpg_start_time;
+    printf("createQtable:%lf\n", (double)prcJpgStm.func_createQtable/CLOCKS_PER_SEC);
+    printf("create_mainheader:%lf\n", (double)prcJpgStm.func_create_main_header/CLOCKS_PER_SEC);
+    printf("encoder:%lf\n", (double)prcJpgStm.proc_encoder/CLOCKS_PER_SEC);
+    printf("decoder:%lf\n", (double)prcJpgStm.proc_decoder/CLOCKS_PER_SEC);
+    printf("ttl:%lf\n", (double)prcJpgStm.func_procJpg/CLOCKS_PER_SEC);
 }
 
 /***************************************************************

@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cstdio>
 #include <math.h>
+#include <time.h>
 #include <string.h>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/highgui.hpp>
@@ -74,3 +75,14 @@ void psnr(cv::Mat &orgn, cv::Mat &data);
 void procJpg(cv::Mat &data, int QF, int PSNR = 0);
 cv::Mat inputImg(char *f_path, char *color);
 void errorExt(char *arg);
+
+typedef struct {
+    clock_t start_time;
+    clock_t end_time;
+    clock_t procJpg_start_time;
+    clock_t func_createQtable;
+    clock_t func_create_main_header;
+    clock_t proc_encoder;
+    clock_t proc_decoder;
+    clock_t func_procJpg;
+} timer_counter;
